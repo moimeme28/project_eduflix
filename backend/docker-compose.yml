@@ -3,36 +3,42 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:5.0
-    container_name: eduflix-mongodb
+    container_name: moodcurator-mongodb
     environment:
-      MONGO_URI: mongodb://admin:password@mongodb:27017/eduflix
+      MONGO_URI: mongodb://admin:password@mongodb:27017/moodcurator
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
-      - eduflix-network
+      - moodcurator-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: moodcurator-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - moodcurator-network
 
   app:
     build: .
-    container_name: eduflix-backend
+    container_name: moodcurator-backend
     ports:
       - "5000:5000"
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb://admin:password@mongodb:27017/eduflix
+      - MONGO_URI=mongodb://admin:password@mongodb:27017/moodcurator
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your_super_secret_jwt_key_here_change_in_production
       - FRONTEND_URL=http://localhost:3000
     depends_on:
       - mongodb
+      - redis
     networks:
-      - eduflix-network
+      - moodcurator-network
     volumes:
       - ./logs:/app/logs
 
 volumes:
   mongodb_data:
-
-networks:
-  eduflix-network:
-    driver: bridge

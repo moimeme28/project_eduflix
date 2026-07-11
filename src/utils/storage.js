@@ -1,6 +1,6 @@
 // Local storage utilities with error handling
 
-const STORAGE_PREFIX = 'moodcurator_';
+const STORAGE_PREFIX = 'eduflix_';
 
 export const storage = {
   // Get item from local storage

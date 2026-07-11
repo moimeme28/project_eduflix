@@ -1,9 +1,12 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { BookOpen, Clock, TrendingUp, Award, Flame, Target, Calendar, PlayCircle } from 'lucide-react';
 
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// Stable mock activity heights (no Math.random() on render)
+const WEEK_HEIGHTS = [65, 80, 45, 90, 55, 30, 70];
+
 const StudentDashboard = ({ user }) => {
-  const navigate = useNavigate();
   const stats = {
     learningStreak: 7,
     hoursWatched: 24,
@@ -25,12 +28,27 @@ const StudentDashboard = ({ user }) => {
     { icon: '🏆', title: 'Master', description: 'Complete a subject', unlocked: false }
   ];
 
+  // Stable progress values — stored in useMemo so they don't change each render
+  const subjectProgress = useMemo(() => ({
+    Science: 78,
+    Technology: 62,
+    History: 91
+  }), []);
+
+  const goals = [
+    { goal: 'Complete Biology Basics', progress: 80 },
+    { goal: 'Watch 5 History Documentaries', progress: 60 },
+    { goal: 'Learn Python Fundamentals', progress: 30 }
+  ];
+
   return (
     <div className="pt-24 pb-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold font-display mb-2">Welcome back, {user?.name || 'Student'}!</h1>
+          <h1 className="text-3xl font-bold font-display mb-2">
+            Welcome back, {user?.name || 'Student'}!
+          </h1>
           <p className="text-gray-400">Continue your learning journey</p>
         </div>
 
@@ -77,24 +95,27 @@ const StudentDashboard = ({ user }) => {
               </h2>
               <div className="space-y-4">
                 {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  >
                     <div className="w-20 h-12 rounded-lg bg-gradient-to-br from-primary-500/30 to-purple-500/30 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium truncate">{activity.title}</h3>
                       <p className="text-sm text-gray-400">{activity.subject} • {activity.time}</p>
                       <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-primary"
+                          className="h-full bg-gradient-primary transition-all"
                           style={{ width: `${activity.progress}%` }}
                         />
                       </div>
                     </div>
-                    <button 
-                      onClick={() => navigate('/subjects')}
-                      className="px-4 py-2 rounded-lg bg-gradient-primary text-sm font-medium hover:opacity-90 transition-opacity"
+                    <Link
+                      to="/subjects"
+                      className="px-4 py-2 rounded-lg bg-gradient-primary text-sm font-medium hover:opacity-90 transition-opacity flex-shrink-0"
                     >
                       {activity.progress === 100 ? 'Rewatch' : 'Continue'}
-                    </button>
+                    </Link>
                   </div>
                 ))}
               </div>
@@ -111,12 +132,12 @@ const StudentDashboard = ({ user }) => {
                   <div key={subject}>
                     <div className="flex justify-between mb-2">
                       <span className="font-medium">{subject}</span>
-                      <span className="text-gray-400 text-sm">{Math.floor(Math.random() * 40 + 60)}%</span>
+                      <span className="text-gray-400 text-sm">{subjectProgress[subject]}%</span>
                     </div>
                     <div className="h-3 bg-white/10 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-primary transition-all"
-                        style={{ width: `${Math.random() * 40 + 60}%` }}
+                        style={{ width: `${subjectProgress[subject]}%` }}
                       />
                     </div>
                   </div>
@@ -131,9 +152,12 @@ const StudentDashboard = ({ user }) => {
                 This Week's Activity
               </h2>
               <div className="flex items-end justify-between gap-2 h-40">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                {DAYS.map((day, index) => (
                   <div key={day} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full bg-white/10 rounded-t-lg relative" style={{ height: `${Math.random() * 80 + 20}%` }}>
+                    <div
+                      className="w-full bg-white/10 rounded-t-lg relative"
+                      style={{ height: `${WEEK_HEIGHTS[index]}%` }}
+                    >
                       <div className="absolute inset-0 bg-gradient-primary rounded-t-lg opacity-80" />
                     </div>
                     <span className="text-xs text-gray-400">{day}</span>
@@ -180,11 +204,7 @@ const StudentDashboard = ({ user }) => {
                 Learning Goals
               </h2>
               <div className="space-y-3">
-                {[
-                  { goal: 'Complete Biology Basics', progress: 80 },
-                  { goal: 'Watch 5 History Documentaries', progress: 60 },
-                  { goal: 'Learn Python Fundamentals', progress: 30 }
-                ].map((item, index) => (
+                {goals.map((item, index) => (
                   <div key={index}>
                     <div className="flex justify-between mb-2">
                       <span className="text-sm">{item.goal}</span>
@@ -199,23 +219,34 @@ const StudentDashboard = ({ user }) => {
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-4 py-2 rounded-lg glass-button text-sm font-medium">
-                + Add New Goal
-              </button>
+              <Link
+                to="/subjects"
+                className="block w-full mt-4 py-2 text-center rounded-lg glass-button text-sm font-medium hover:bg-white/10 transition-colors"
+              >
+                + Browse More Content
+              </Link>
             </div>
 
             {/* Recommended */}
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold font-display mb-4">Recommended for You</h2>
               <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
+                {[
+                  { title: 'Cosmos: A Spacetime Odyssey', subject: 'Science' },
+                  { title: 'The Imitation Game', subject: 'Technology' },
+                  { title: "Schindler's List", subject: 'History' }
+                ].map((item, i) => (
+                  <Link
+                    key={i}
+                    to="/subjects"
+                    className="flex items-center gap-3 hover:bg-white/5 p-2 rounded-lg transition-colors"
+                  >
                     <div className="w-16 h-10 rounded bg-gradient-to-br from-primary-500/30 to-purple-500/30 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate">Recommended Content {i}</h3>
-                      <p className="text-xs text-gray-400">Subject • Level</p>
+                      <h3 className="font-medium text-sm truncate">{item.title}</h3>
+                      <p className="text-xs text-gray-400">{item.subject}</p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

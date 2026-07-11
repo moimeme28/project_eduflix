@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import './index.css';
-import { SUBJECT_CATEGORIES, LEARNING_LEVELS, LEARNING_FORMATS } from './data/subjects';
+import { SUBJECT_CATEGORIES } from './data/subjects';
 import eduflixService from './services/eduflixService';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Components
 import Navbar from './components/Navbar';
@@ -18,8 +19,8 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Profile from './components/Profile';
 
-function App() {
-  const [user, setUser] = useState(null);
+function AppContent() {
+  const { user, logout } = useAuth();
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState('intermediate');
@@ -28,34 +29,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [showAI, setShowAI] = useState(false);
 
-  useEffect(() => {
-    // Check for existing user session
-    const savedUser = localStorage.getItem('eduflix_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+  const loadRecommendations = useCallback(async (subject, topic, level, format) => {
+    if (!subject) return;
 
-  const handleSubjectSelect = (subject) => {
-    setSelectedSubject(subject);
-    setSelectedTopic(null);
-  };
-
-  const handleTopicSelect = (topic) => {
-    setSelectedTopic(topic);
-    loadRecommendations();
-  };
-
-  const loadRecommendations = async () => {
-    if (!selectedSubject) return;
-    
     setLoading(true);
     try {
       const movies = await eduflixService.getEducationalMovies(
-        selectedSubject.id,
-        selectedTopic?.id,
-        selectedLevel,
-        selectedFormat
+        subject.id,
+        topic?.id,
+        level,
+        format
       );
       setRecommendations(movies);
     } catch (error) {
@@ -63,75 +46,100 @@ function App() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handleSubjectSelect = (subject) => {
+    setSelectedSubject(subject);
+    setSelectedTopic(null);
+    setRecommendations([]);
+  };
+
+  const handleTopicSelect = (topic) => {
+    setSelectedTopic(topic);
+    loadRecommendations(selectedSubject, topic, selectedLevel, selectedFormat);
   };
 
   // Reload recommendations when level or format changes
   useEffect(() => {
     if (selectedSubject) {
-      loadRecommendations();
+      loadRecommendations(selectedSubject, selectedTopic, selectedLevel, selectedFormat);
     }
-  }, [selectedLevel, selectedFormat]);
-
-  const handleLogin = (userData) => {
-    setUser(userData);
-    localStorage.setItem('eduflix_user', JSON.stringify(userData));
-  };
+  }, [selectedLevel, selectedFormat, selectedSubject, selectedTopic, loadRecommendations]);
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('eduflix_user');
+    logout();
+    setSelectedSubject(null);
+    setSelectedTopic(null);
+    setRecommendations([]);
   };
 
   // Wrapper component to handle URL parameters
   const TopicSelectionWrapper = () => {
     const { subjectId } = useParams();
     const subject = SUBJECT_CATEGORIES.find(cat => cat.id === subjectId);
-    
+
     useEffect(() => {
       if (subject) {
         setSelectedSubject(subject);
       }
     }, [subject]);
-    
+
     return <TopicSelection subject={subject} onSelect={handleTopicSelect} />;
   };
 
   return (
-    <Router>
-      <div className="min-h-screen bg-dark-bg text-white">
-        <Navbar user={user} onLogout={handleLogout} onAI={() => setShowAI(true)} />
-        
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/subjects" element={<SubjectSelection 
-            categories={SUBJECT_CATEGORIES}
-            onSelect={handleSubjectSelect}
-          />} />
-          <Route path="/topics/:subjectId" element={<TopicSelectionWrapper />} />
-          <Route path="/recommendations" element={<Recommendations
-            subject={selectedSubject}
-            topic={selectedTopic}
-            level={selectedLevel}
-            format={selectedFormat}
-            movies={recommendations}
-            loading={loading}
-            onLevelChange={setSelectedLevel}
-            onFormatChange={setSelectedFormat}
-          />} />
-          <Route path="/movie/:id" element={<MovieDetails />} />
-          <Route path="/dashboard" element={user?.role === 'teacher' ? 
-            <TeacherDashboard user={user} /> : 
-            <StudentDashboard user={user} />
-          } />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
-          <Route path="/profile" element={<Profile user={user} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+    <div className="min-h-screen bg-dark-bg text-white">
+      <Navbar user={user} onLogout={handleLogout} onAI={() => setShowAI(true)} />
 
-        {showAI && <AIAssistant onClose={() => setShowAI(false)} />}
-      </div>
-    </Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/subjects" element={<SubjectSelection
+          categories={SUBJECT_CATEGORIES}
+          onSelect={handleSubjectSelect}
+        />} />
+        <Route path="/topics/:subjectId" element={<TopicSelectionWrapper />} />
+        <Route path="/recommendations" element={<Recommendations
+          subject={selectedSubject}
+          topic={selectedTopic}
+          level={selectedLevel}
+          format={selectedFormat}
+          movies={recommendations}
+          loading={loading}
+          onLevelChange={setSelectedLevel}
+          onFormatChange={setSelectedFormat}
+        />} />
+        <Route path="/movie/:id" element={<MovieDetails />} />
+        <Route
+          path="/dashboard"
+          element={
+            user
+              ? (user.role === 'teacher'
+                ? <TeacherDashboard user={user} />
+                : <StudentDashboard user={user} />)
+              : <Navigate to="/login" replace />
+          }
+        />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route
+          path="/profile"
+          element={user ? <Profile user={user} /> : <Navigate to="/login" replace />}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {showAI && <AIAssistant onClose={() => setShowAI(false)} />}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 

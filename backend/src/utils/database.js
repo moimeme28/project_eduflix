@@ -3,7 +3,7 @@ const logger = require('./logger');
 
 const connectDatabase = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/eduflix';
+    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/moodcurator';
     
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,

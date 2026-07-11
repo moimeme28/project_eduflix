@@ -380,49 +380,42 @@ const EDUCATIONAL_MOVIE_DATABASE = {
 class EduFlixService {
   // Get movie details by ID from the fallback database
   async getMovieDetails(id) {
-    console.log('Fetching movie details for ID:', id);
-    
+    const numId = parseInt(id, 10);
+
     // Search through all categories in the fallback database
     for (const category in EDUCATIONAL_MOVIE_DATABASE) {
-      const movie = EDUCATIONAL_MOVIE_DATABASE[category].find(m => m.id === parseInt(id));
+      const movie = EDUCATIONAL_MOVIE_DATABASE[category].find(m => m.id === numId);
       if (movie) {
-        console.log('Found movie in database:', movie.title, 'with ID:', movie.id);
-        
-        // Try to fetch poster from TMDB
+        // Try to fetch poster from TMDB if API key is available
         let posterPath = movie.poster_path;
-        try {
-          const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
-            params: {
-              api_key: TMDB_API_KEY,
-              query: movie.title,
-              page: 1
+        if (TMDB_API_KEY) {
+          try {
+            const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
+              params: { api_key: TMDB_API_KEY, query: movie.title, page: 1 }
+            });
+            if (response.data.results && response.data.results.length > 0) {
+              const tmdbMovie = response.data.results[0];
+              if (tmdbMovie.poster_path) {
+                posterPath = `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}`;
+              }
             }
-          });
-          
-          if (response.data.results && response.data.results.length > 0) {
-            const tmdbMovie = response.data.results[0];
-            if (tmdbMovie.poster_path) {
-              posterPath = `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}`;
-              console.log('Fetched TMDB poster for:', movie.title);
-            }
+          } catch (_) {
+            // silently fall through to placeholder
           }
-        } catch (error) {
-          console.error('Error fetching poster for', movie.title, error);
         }
-        
-        // Fallback to placeholder if no poster found
+
+        // Fallback placeholder if no valid poster found
         if (!posterPath || posterPath === '/placeholder.jpg' || !posterPath.startsWith('http')) {
           posterPath = `https://placehold.co/300x450/667eea/ffffff?text=${encodeURIComponent(movie.title.substring(0, 20))}&font=roboto`;
-          console.log('Using placeholder poster for:', movie.title);
         }
-        
-        const result = {
+
+        return {
           ...movie,
           poster_path: posterPath,
           educationalMetadata: {
             subjects: [category],
             topics: [],
-            difficultyLevel: 'intermediate',
+            difficultyLevel: this.getDifficultyLevel(movie.vote_average),
             educationalValue: movie.vote_average,
             learningObjectives: this.generateLearningObjectives(category, null),
             keyConcepts: this.generateKeyConcepts(category, null),
@@ -430,31 +423,11 @@ class EduFlixService {
             vocabulary: this.generateVocabulary(category, null)
           }
         };
-        console.log('Returning movie details:', result.title, 'with poster:', result.poster_path);
-        return result;
       }
     }
-    
-    // If movie not found in database, return a fallback movie object
-    console.warn('Movie not found in database for ID:', id);
-    return {
-      id: parseInt(id),
-      title: 'Movie Not Found',
-      overview: 'This movie could not be found in our database.',
-      poster_path: `https://placehold.co/300x450/ff0000/ffffff?text=Not+Found&font=roboto`,
-      vote_average: 0,
-      release_date: '2023-01-01',
-      educationalMetadata: {
-        subjects: [],
-        topics: [],
-        difficultyLevel: 'intermediate',
-        educationalValue: 0,
-        learningObjectives: [],
-        keyConcepts: [],
-        discussionQuestions: [],
-        vocabulary: []
-      }
-    };
+
+    // Movie not found — return null so the UI can show a proper error state
+    return null;
   }
 
   // Get educational movies by subject and topic
@@ -668,8 +641,8 @@ class EduFlixService {
             posterPath = `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}`;
           }
         }
-      } catch (error) {
-        console.error('Error fetching poster for', movie.title, error);
+      } catch (_) {
+        // silently fall through to placeholder
       }
       
       // Fallback to placeholder if no valid poster found
@@ -714,19 +687,6 @@ class EduFlixService {
     return 'professional';
   }
 
-  // Get movie details with educational info
-  async getMovieDetails(movieId) {
-    try {
-      const response = await axios.get(`${TMDB_BASE_URL}/movie/${movieId}`, {
-        params: { api_key: TMDB_API_KEY, append_to_response: 'credits,videos' }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching movie details:', error);
-      return null;
-    }
-  }
-
   // Get trending educational content
   async getTrendingEducational() {
     try {
@@ -734,8 +694,7 @@ class EduFlixService {
         params: { api_key: TMDB_API_KEY }
       });
       return response.data.results.slice(0, 10);
-    } catch (error) {
-      console.error('Error fetching trending:', error);
+    } catch (_) {
       return [];
     }
   }
@@ -744,24 +703,19 @@ class EduFlixService {
   async smartSearch(query, filters = {}) {
     try {
       const response = await axios.get(`${TMDB_BASE_URL}/search/multi`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          query: query,
-          page: 1
-        }
+        params: { api_key: TMDB_API_KEY, query, page: 1 }
       });
-      return response.data.results.filter(item => 
-        item.media_type === 'movie' || item.media_type === 'tv'
+      return response.data.results.filter(
+        item => item.media_type === 'movie' || item.media_type === 'tv'
       );
-    } catch (error) {
-      console.error('Error in smart search:', error);
+    } catch (_) {
       return [];
     }
   }
 
   // Get recommendations based on user preferences
   async getPersonalizedRecommendations(userPreferences) {
-    const { subjects, level, format, watchHistory } = userPreferences;
+    const { subjects, level, format } = userPreferences;
     const recommendations = [];
 
     for (const subject of subjects) {

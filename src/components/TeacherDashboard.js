@@ -1,9 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Users, BookOpen, TrendingUp, Plus, Share2, Calendar, CheckCircle, Clock } from 'lucide-react';
 
 const TeacherDashboard = ({ user }) => {
-  const navigate = useNavigate();
   const classStats = {
     totalStudents: 45,
     activeStudents: 38,
@@ -33,18 +32,20 @@ const TeacherDashboard = ({ user }) => {
     <div className="pt-24 pb-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold font-display mb-2">Teacher Dashboard</h1>
+            <h1 className="text-3xl font-bold font-display mb-2">
+              Welcome, {user?.name || 'Teacher'}!
+            </h1>
             <p className="text-gray-400">Manage your classes and track student progress</p>
           </div>
-          <button 
-            onClick={() => navigate('/subjects')}
+          <Link
+            to="/subjects"
             className="px-6 py-3 rounded-xl bg-gradient-primary font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
           >
             <Plus className="w-5 h-5" />
             Create Assignment
-          </button>
+          </Link>
         </div>
 
         {/* Stats Grid */}
@@ -87,7 +88,10 @@ const TeacherDashboard = ({ user }) => {
               <h2 className="text-xl font-bold font-display mb-4">Your Classes</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {classes.map((cls, index) => (
-                  <div key={index} className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                  <div
+                    key={index}
+                    className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold">{cls.name}</h3>
                       <span className="text-sm text-gray-400">{cls.students} students</span>
@@ -107,13 +111,13 @@ const TeacherDashboard = ({ user }) => {
                     </div>
                   </div>
                 ))}
-                <button 
-                  onClick={() => navigate('/subjects')}
+                <Link
+                  to="/subjects"
                   className="p-4 rounded-xl border-2 border-dashed border-white/20 hover:border-primary-500/50 transition-colors flex items-center justify-center gap-2 text-gray-400 hover:text-white"
                 >
                   <Plus className="w-5 h-5" />
                   Add New Class
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -123,19 +127,17 @@ const TeacherDashboard = ({ user }) => {
               <div className="space-y-4">
                 {assignments.map((assignment, index) => (
                   <div key={index} className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-3 gap-4">
                       <div>
                         <h3 className="font-medium">{assignment.title}</h3>
                         <p className="text-sm text-gray-400">{assignment.class}</p>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Clock className="w-4 h-4" />
-                          <span>{assignment.due}</span>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400 flex-shrink-0">
+                        <Clock className="w-4 h-4" />
+                        <span>{assignment.due}</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-5 h-5 text-green-500" />
@@ -148,7 +150,7 @@ const TeacherDashboard = ({ user }) => {
                           />
                         </div>
                       </div>
-                      <button className="px-3 py-1 rounded-lg glass-button text-sm flex items-center gap-2">
+                      <button className="px-3 py-1 rounded-lg glass-button text-sm flex items-center gap-2 hover:bg-white/10 transition-colors">
                         <Share2 className="w-4 h-4" />
                         Remind
                       </button>
@@ -163,17 +165,20 @@ const TeacherDashboard = ({ user }) => {
               <h2 className="text-xl font-bold font-display mb-4">Top Performers</h2>
               <div className="space-y-3">
                 {studentProgress.map((student, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center font-bold">
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center font-bold flex-shrink-0">
                       {student.name.charAt(0)}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-medium">{student.name}</h3>
                       <p className="text-sm text-gray-400">{student.class}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <div className="font-medium">{student.progress}%</div>
-                      <div className="text-sm text-gray-400 flex items-center gap-1">
+                      <div className="text-sm text-gray-400">
                         🔥 {student.streak} day streak
                       </div>
                     </div>
@@ -189,34 +194,21 @@ const TeacherDashboard = ({ user }) => {
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold font-display mb-4">Quick Actions</h2>
               <div className="space-y-3">
-                <button 
-                  onClick={() => navigate('/subjects')}
-                  className="w-full py-3 px-4 rounded-xl glass-button text-left flex items-center gap-3 hover:bg-white/10 transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Create Assignment</span>
-                </button>
-                <button 
-                  onClick={() => navigate('/subjects')}
-                  className="w-full py-3 px-4 rounded-xl glass-button text-left flex items-center gap-3 hover:bg-white/10 transition-colors"
-                >
-                  <BookOpen className="w-5 h-5" />
-                  <span>Browse Content</span>
-                </button>
-                <button 
-                  onClick={() => navigate('/subjects')}
-                  className="w-full py-3 px-4 rounded-xl glass-button text-left flex items-center gap-3 hover:bg-white/10 transition-colors"
-                >
-                  <Share2 className="w-5 h-5" />
-                  <span>Share Playlist</span>
-                </button>
-                <button 
-                  onClick={() => navigate('/subjects')}
-                  className="w-full py-3 px-4 rounded-xl glass-button text-left flex items-center gap-3 hover:bg-white/10 transition-colors"
-                >
-                  <Users className="w-5 h-5" />
-                  <span>Manage Students</span>
-                </button>
+                {[
+                  { icon: Plus, label: 'Create Assignment', to: '/subjects' },
+                  { icon: BookOpen, label: 'Browse Content', to: '/subjects' },
+                  { icon: Share2, label: 'Share Playlist', to: '/subjects' },
+                  { icon: Users, label: 'Manage Students', to: '/subjects' },
+                ].map(({ icon: Icon, label, to }) => (
+                  <Link
+                    key={label}
+                    to={to}
+                    className="w-full py-3 px-4 rounded-xl glass-button text-left flex items-center gap-3 hover:bg-white/10 transition-colors"
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{label}</span>
+                  </Link>
+                ))}
               </div>
             </div>
 
@@ -245,14 +237,17 @@ const TeacherDashboard = ({ user }) => {
               <h2 className="text-xl font-bold font-display mb-4">Teacher Resources</h2>
               <div className="space-y-3">
                 {[
-                  { title: 'Getting Started Guide', type: 'PDF' },
-                  { title: 'Assignment Templates', type: 'DOC' },
-                  { title: 'Best Practices', type: 'Video' }
+                  { title: 'Getting Started Guide', type: 'Guide' },
+                  { title: 'Assignment Templates', type: 'Template' },
+                  { title: 'Best Practices', type: 'Article' }
                 ].map((resource, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                    <BookOpen className="w-5 h-5 text-gray-400" />
-                    <div className="flex-1">
-                      <h3 className="font-medium text-sm">{resource.title}</h3>
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                  >
+                    <BookOpen className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm truncate">{resource.title}</h3>
                       <p className="text-xs text-gray-400">{resource.type}</p>
                     </div>
                   </div>
